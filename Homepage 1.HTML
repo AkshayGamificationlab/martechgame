@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore the Realms | TV Optimized</title>
+    
+    <!-- Google Fonts for Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Orbitron:wght@700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        /* =========================================
+           VARIABLES & RESET
+           ========================================= */
+        :root {
+            --gold-light: #FFE066;
+            --gold-base: #FFD700;
+            --gold-dark: #B8860B;
+            --day-sky-top: #4facfe;
+            --day-sky-bot: #c3f0ff;
+            --night-sky-top: #02010a;
+            --night-sky-bot: #190a3a;
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000;
+            font-family: sans-serif;
+        }
+
+        /* =========================================
+           LAYOUT & PANES
+           ========================================= */
+        .split-layout {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .pane-link {
+            flex: 1;
+            position: relative;
+            display: block;
+            text-decoration: none;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        /* The Overlay (dimming layer) */
+        .pane-link::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0); /* Default: Bright mode (no dimming) */
+            transition: background 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* When the cursor is anywhere on the screen, prepare to dim sides... */
+        .split-layout:hover .pane-link::after {
+            background: rgba(0, 0, 0, 0.5); /* Make everything a bit dull */
+        }
+
+        /* ...except for the side currently being hovered, keep it bright */
+        .split-layout .pane-link:hover::after {
+            background: rgba(0, 0, 0, 0);
+        }
+
+        .pane-content {
+            position: absolute;
+            inset: 0;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), filter 0.8s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+        }
+
+        .pane-link:hover .pane-content {
+            transform: scale(1.05);
+        }
+
+        .pane-title {
+            position: relative;
+            z-index: 5;
+            text-align: center;
+            animation: floatText 4s ease-in-out infinite;
+        }
+
+        .pane-subtitle {
+            font-size: 1.5vw;
+            margin-top: 1vh;
+            opacity: 0.8;
+            letter-spacing: 0.2vw;
+            text-transform: uppercase;
+        }
+
+        @keyframes floatText {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-1.5vh); }
+        }
+
+        /* =========================================
+           LEFT SIDE: DAY THEME (Mine Quest)
+           ========================================= */
+        .day-pane .pane-content {
+            background: linear-gradient(180deg, var(--day-sky-top) 0%, var(--day-sky-bot) 100%);
+        }
+
+        .day-title h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 6vw; 
+            color: #e2e8f0; /* Metallic aluminum */
+            text-shadow: 
+                0.1vw 0.1vw 0 #cbd5e1,
+                0.2vw 0.2vw 0 #94a3b8,
+                0.3vw 0.3vw 0 #64748b,
+                0.4vw 0.4vw 0 #475569,
+                0.5vw 0.5vw 0 #334155,
+                0.6vw 0.6vw 0 #1e293b,
+                0.7vw 0.7vw 0 #0f172a,
+                1vw 1vw 1.5vw rgba(0, 0, 0, 0.5); 
+            letter-spacing: 0.1vw;
+            line-height: 1.2;
+        }
+
+        .day-title .pane-subtitle {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1vw;
+            margin-top: 2vh;
+            color: #2E7D32;
+            text-shadow: 0.2vw 0.2vw 0 #ffffff;
+        }
+
+        .mc-cloud {
+            position: absolute;
+            z-index: 2;
+            opacity: 0.9;
+            animation: floatCloud linear infinite;
+        }
+
+        .cloud-1 { width: 15vw; top: 15vh; animation-duration: 45s; }
+        .cloud-2 { width: 10vw; top: 35vh; animation-duration: 35s; animation-delay: -15s; }
+        .cloud-3 { width: 18vw; top: 5vh; animation-duration: 60s; animation-delay: -30s; }
+
+        @keyframes floatCloud {
+            from { left: -20vw; }
+            to { left: 50vw; }
+        }
+
+        .mc-hills-container {
+            position: absolute;
+            bottom: -1vh;
+            left: 0;
+            width: 100%;
+            height: 30vh;
+            z-index: 3;
+        }
+
+        /* =========================================
+           RIGHT SIDE: NIGHT THEME (Neon Futuristic)
+           ========================================= */
+        .night-pane .pane-content {
+            background: radial-gradient(circle at center, var(--night-sky-bot) 0%, var(--night-sky-top) 100%);
+        }
+
+        .night-title h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 6vw;
+            color: #ffffff;
+            text-shadow: 
+                0 0 0.5vw #fff, 
+                0 0 1vw var(--neon-cyan), 
+                0 0 3vw var(--neon-cyan), 
+                0 0 5vw var(--neon-magenta);
+            letter-spacing: 0.3vw;
+        }
+
+        .night-title .pane-subtitle {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 0.5vw var(--neon-cyan);
+        }
+
+        .neon-grid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 45vh;
+            background:
+                linear-gradient(transparent 65%, rgba(0, 255, 255, 0.3) 75%, transparent 100%),
+                linear-gradient(90deg, transparent 48%, rgba(255, 0, 255, 0.4) 50%, transparent 52%);
+            background-size: 100% 4vh, 4vw 100%;
+            transform: perspective(60vh) rotateX(70deg);
+            transform-origin: bottom;
+            animation: moveGrid 3s linear infinite;
+            z-index: 1;
+            box-shadow: inset 0 5vh 10vh var(--night-sky-bot);
+        }
+
+        @keyframes moveGrid {
+            0% { background-position: 0 0, 0 0; }
+            100% { background-position: 0 4vh, 0 0; }
+        }
+
+        .particles {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            bottom: -5vh;
+            width: 0.4vw;
+            height: 0.4vw;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 1vw var(--neon-cyan), 0 0 2vw var(--neon-cyan);
+            animation: rise infinite ease-in;
+        }
+
+        .particle:nth-child(even) {
+            background: var(--neon-magenta);
+            box-shadow: 0 0 1vw var(--neon-magenta), 0 0 2vw var(--neon-magenta);
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-80vh) scale(0.5); opacity: 0; }
+        }
+
+        /* =========================================
+           CENTER DIVIDER & 3D DIAMOND
+           ========================================= */
+        .center-divider {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0.4vw;
+            height: 100%;
+            background: linear-gradient(180deg, transparent, var(--gold-base), #fff, var(--gold-base), transparent);
+            background-size: 100% 200%;
+            z-index: 20;
+            pointer-events: none; 
+            box-shadow: 0 0 2vw var(--gold-base), 0 0 4vw rgba(255, 215, 0, 0.5);
+            animation: goldShimmer 4s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes goldShimmer {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 0% 200%; }
+        }
+
+        .diamond-wrapper {
+            position: absolute;
+            perspective: 1500px;
+            width: 12vw;
+            height: 18vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diamond-glow {
+            position: absolute;
+            width: 15vw;
+            height: 15vw;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, transparent 60%);
+            z-index: -1;
+        }
+
+        .diamond-spinner {
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            animation: flipY 6s linear infinite;
+        }
+
+        @keyframes flipY {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        .diamond-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 1vw rgba(255, 215, 0, 0.8));
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="split-layout">
+        
+        <!-- LEFT PANE: DAY / MINE QUEST -->
+        <a href="page1.html" class="pane-link day-pane">
+            <div class="pane-content">
+                <svg class="mc-cloud cloud-1" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+                    <rect x="10" y="20" width="80" height="20" fill="white" />
+                    <rect x="25" y="10" width="50" height="10" fill="white" />
+                    <rect x="40" y="0" width="20" height="10" fill="white" />
+                </svg>
+                <svg class="mc-cloud cloud-2" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+                    <rect x="0" y="20" width="100" height="20" fill="white" />
+                    <rect x="20" y="10" width="60" height="10" fill="white" />
+                </svg>
+                <svg class="mc-cloud cloud-3" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+                    <rect x="15" y="20" width="70" height="20" fill="white" />
+                    <rect x="30" y="10" width="40" height="10" fill="white" />
+                    <rect x="45" y="0" width="20" height="10" fill="white" />
+                </svg>
+
+                <div class="pane-title day-title">
+                    <h1>Mine Quest</h1>
+                    <div class="pane-subtitle">Enter The Overworld</div>
+                </div>
+
+                <svg class="mc-hills-container" viewBox="0 0 1000 200" preserveAspectRatio="none" shape-rendering="crispEdges">
+                    <path d="M0,200 L0,100 L80,100 L80,80 L150,80 L150,60 L250,60 L250,90 L380,90 L380,120 L500,120 L500,100 L650,100 L650,70 L750,70 L750,90 L880,90 L880,130 L1000,130 L1000,200 Z" fill="#81C784"/>
+                    <path d="M0,200 L0,150 L120,150 L120,130 L220,130 L220,160 L400,160 L400,140 L550,140 L550,170 L700,170 L700,140 L850,140 L850,160 L1000,160 L1000,200 Z" fill="#4CAF50"/>
+                    <path d="M0,200 L0,170 L120,170 L120,150 L220,150 L220,180 L400,180 L400,160 L550,160 L550,190 L700,190 L700,160 L850,160 L850,180 L1000,180 L1000,200 Z" fill="#795548"/>
+                </svg>
+            </div>
+        </a>
+
+        <!-- RIGHT PANE: NIGHT / NEON FUTURISTIC -->
+        <a href="page2.html" class="pane-link night-pane">
+            <div class="pane-content">
+                <div class="particles" id="particle-container"></div>
+                <div class="neon-grid"></div>
+                <div class="pane-title night-title">
+                    <h1>FUSE OR CONFUSE</h1>
+                    <div class="pane-subtitle">Enter The Grid</div>
+                </div>
+            </div>
+        </a>
+
+        <!-- CENTER DIVIDER & 3D DIAMOND -->
+        <div class="center-divider">
+            <div class="diamond-wrapper">
+                <div class="diamond-glow"></div>
+                <div class="diamond-spinner">
+                    <svg class="diamond-svg" viewBox="0 0 100 150">
+                        <defs>
+                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#FFF8D6" />
+                                <stop offset="50%" stop-color="#FFD700" />
+                                <stop offset="100%" stop-color="#B8860B" />
+                            </linearGradient>
+                            <linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="rgba(255,255,255,0.7)" />
+                                <stop offset="40%" stop-color="rgba(255,255,255,0.1)" />
+                                <stop offset="60%" stop-color="rgba(255,215,0,0.1)" />
+                                <stop offset="100%" stop-color="rgba(255,215,0,0.4)" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="50,5 95,75 50,145 5,75" fill="url(#glassGradient)" stroke="url(#goldGradient)" stroke-width="3" stroke-linejoin="round"/>
+                        <polyline points="5,75 50,30 95,75" stroke="url(#goldGradient)" stroke-width="1.5" fill="none" opacity="0.8"/>
+                        <polyline points="5,75 50,120 95,75" stroke="url(#goldGradient)" stroke-width="1.5" fill="none" opacity="0.8"/>
+                        <line x1="50" y1="5" x2="50" y2="145" stroke="url(#goldGradient)" stroke-width="2" opacity="0.9"/>
+                        <polygon points="50,5 50,30 5,75" fill="rgba(255,255,255,0.3)"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup particles
+            const particleContainer = document.getElementById('particle-container');
+            for (let i = 0; i < 25; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 8 + 5) + 's';
+                particle.style.animationDelay = (Math.random() * 5) + 's';
+                particleContainer.appendChild(particle);
+            }
+        });
+    </script>
+</body>
+</html>

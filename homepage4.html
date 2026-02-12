@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAA Voxel vs Neon Hub</title>
+
+    <!-- Premium Gaming Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Silkscreen&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================================================
+           1. RESET & VARIABLES
+           ========================================================================== */
+        :root {
+            --split-pos: 50%;
+            --split-angle: 8vw; 
+            
+            /* Minecraft Palette */
+            --mc-sky: #78A7FF;
+            --mc-grass: #51D954;
+            --mc-grass-dark: #3CA03E;
+            --mc-dirt: #4c3a30;
+            --mc-dirt-dark: #352922;
+            --mc-accent: #51D954;
+            --mc-aluminum: #A9ACB6; /* Aluminum Color */
+            --mc-glow: rgba(81, 217, 84, 0.4);
+            
+            /* Neon Theme Colors */
+            --neon-bg: #050014;
+            --neon-pink: #ff007f;
+            --neon-cyan: #00f0ff;
+            --neon-glow: rgba(255, 0, 127, 0.4);
+
+            --aaa-ease: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none; 
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ==========================================================================
+           2. LAYOUT & DYNAMIC SPLIT
+           ========================================================================== */
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .side {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .mc-side {
+            background: linear-gradient(to bottom, 
+                var(--mc-sky) 0%, 
+                #A5C2FF 70%, 
+                var(--mc-grass) 70.1%, 
+                var(--mc-grass) 88%, 
+                var(--mc-dirt) 88.1%, 
+                var(--mc-dirt) 100%);
+            z-index: 1;
+            perspective: 1200px;
+        }
+
+        .neon-side {
+            background: radial-gradient(circle at 70% 50%, #14002e 0%, var(--neon-bg) 70%);
+            z-index: 2;
+            clip-path: polygon(
+                calc(var(--split-pos) + var(--split-angle)) 0, 
+                100vw 0, 
+                100vw 100vh, 
+                calc(var(--split-pos) - var(--split-angle)) 100vh
+            );
+            /* Handle clip-path via JS for better synchronization */
+            will-change: clip-path;
+        }
+
+        .split-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 3;
+            pointer-events: none;
+            clip-path: polygon(
+                calc(var(--split-pos) + var(--split-angle) - 3px) 0,
+                calc(var(--split-pos) + var(--split-angle) + 3px) 0,
+                calc(var(--split-pos) - var(--split-angle) + 3px) 100vh,
+                calc(var(--split-pos) - var(--split-angle) - 3px) 100vh
+            );
+            background: linear-gradient(to bottom, var(--mc-accent), var(--neon-cyan), var(--neon-pink));
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            will-change: clip-path;
+        }
+
+        .hitbox {
+            position: absolute;
+            top: 0;
+            height: 100vh;
+            z-index: 10;
+        }
+        .hitbox-left { left: 0; width: 50vw; }
+        .hitbox-right { right: 0; width: 50vw; }
+
+        /* ==========================================================================
+           3. MINECRAFT WORLD ELEMENTS
+           ========================================================================== */
+        
+        .mc-sky-box {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            pointer-events: none;
+        }
+
+        .mc-cloud {
+            position: absolute;
+            background: #fff;
+            box-shadow: 10px 10px 0 #fff, -10px 10px 0 #fff, 20px 20px 0 #fff;
+            animation: cloudMove linear infinite;
+            opacity: 0.9;
+            image-rendering: pixelated;
+        }
+
+        .cloud-1 { top: 15%; width: 120px; height: 30px; animation-duration: 60s; }
+        .cloud-2 { top: 30%; width: 80px; height: 25px; animation-duration: 45s; animation-delay: -10s; }
+        .cloud-3 { top: 10%; width: 150px; height: 40px; animation-duration: 80s; animation-delay: -20s; }
+
+        .mc-ground-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30%;
+            transform-style: preserve-3d;
+        }
+
+        .mc-grass-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60%;
+            background: var(--mc-grass);
+            transform-style: preserve-3d;
+        }
+
+        .mc-dirt-layer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: var(--mc-dirt);
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .mc-blades {
+            position: absolute;
+            top: -10px;
+            width: 100%;
+            height: 10px;
+            background-image: linear-gradient(90deg, var(--mc-grass) 50%, transparent 50%);
+            background-size: 20px 10px;
+        }
+
+        .mc-grass-3d {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 20px;
+            background: var(--mc-grass-dark);
+            transform: rotateX(-90deg);
+            transform-origin: top;
+            box-shadow: inset 0 -5px 0 var(--mc-dirt);
+        }
+
+        .mc-bush {
+            position: absolute;
+            bottom: 30%;
+            width: 60px;
+            height: 60px;
+            z-index: 2;
+        }
+
+        .leaf-block {
+            position: absolute;
+            background: var(--mc-grass-dark);
+            border: 3px solid #1a3a1a;
+            box-shadow: inset 4px 4px 0 rgba(255,255,255,0.1);
+        }
+        .leaf-1 { width: 40px; height: 40px; top: 0; left: 10px; }
+        .leaf-2 { width: 35px; height: 35px; bottom: 0; left: -10px; }
+        .leaf-3 { width: 35px; height: 35px; bottom: 5px; right: -10px; }
+
+        .sheep-container {
+            position: absolute;
+            bottom: 32%;
+            left: 25%;
+            transform-style: preserve-3d;
+            animation: sheepWalk 15s linear infinite;
+        }
+
+        .sheep {
+            position: relative;
+            width: 60px;
+            height: 40px;
+            transform-style: preserve-3d;
+            animation: sheepBob 0.6s ease-in-out infinite alternate;
+        }
+
+        .sheep-body {
+            position: absolute;
+            width: 60px; height: 40px;
+            background: #fff;
+            border: 2px solid #ddd;
+        }
+
+        .sheep-head {
+            position: absolute;
+            width: 25px; height: 25px;
+            background: #f0f0f0;
+            right: -20px; top: -10px;
+            border: 2px solid #ddd;
+        }
+
+        .sheep-head::after { 
+            content: '';
+            position: absolute;
+            width: 4px; height: 4px;
+            background: #000;
+            right: 5px; top: 8px;
+            box-shadow: -10px 0 0 #000;
+        }
+
+        .sheep-leg {
+            position: absolute;
+            width: 10px; height: 15px;
+            background: #ddd;
+            bottom: -15px;
+        }
+        .leg-1 { left: 5px; animation: legMove 0.6s infinite alternate; }
+        .leg-2 { right: 5px; animation: legMove 0.6s infinite alternate-reverse; }
+
+        /* ==========================================================================
+           4. NEON / ARCADE STYLING (RIGHT)
+           ========================================================================== */
+        .neon-side .content {
+            right: 4vw;
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .synth-grid {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 0, 127, 0.2) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.15) 2px, transparent 2px);
+            background-size: 50px 50px;
+            transform: perspective(600px) rotateX(70deg) translateY(100px) translateZ(-200px);
+            animation: moveSynthGrid 4s linear infinite;
+        }
+
+        /* ==========================================================================
+           5. TYPOGRAPHY
+           ========================================================================== */
+        .content {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 48vw;
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .mc-side .content { left: 4vw; }
+
+        .mc-title {
+            font-family: 'Silkscreen', cursive;
+            font-size: 8vw; 
+            color: var(--mc-aluminum); 
+            line-height: 0.95;
+            text-shadow: 
+                2px 2px 0 #737373, 4px 4px 0 #595959, 
+                6px 6px 0 #404040, 8px 8px 0 #262626, 12px 12px 0 #000000;
+            margin-bottom: 2vh;
+        }
+
+        .neon-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 6.5vw; 
+            font-weight: 900;
+            color: var(--neon-cyan);
+            line-height: 0.9;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px var(--neon-cyan), 8px 8px 0px var(--neon-pink);
+            margin-bottom: 2vh;
+            font-style: italic;
+        }
+
+        /* ==========================================================================
+           6. CURSORS & ANIMATIONS
+           ========================================================================== */
+        .cursor-diamond {
+            position: fixed;
+            top: 0; left: 0;
+            width: 32px;
+            height: 32px;
+            border: 2px solid #fff;
+            pointer-events: none;
+            z-index: 10000;
+            /* use transform for hardware acceleration */
+            transform: translate3d(0, 0, 0) rotate(45deg); 
+            transform-origin: center center;
+            mix-blend-mode: difference;
+            transition: width 0.3s, height 0.3s, border-color 0.3s;
+            will-change: transform;
+        }
+
+        @keyframes cloudMove {
+            0% { transform: translateX(-200px); }
+            100% { transform: translateX(120vw); }
+        }
+
+        @keyframes sheepWalk {
+            0% { left: -100px; }
+            100% { left: 100%; }
+        }
+
+        @keyframes sheepBob {
+            from { transform: translateY(0); }
+            to { transform: translateY(-5px); }
+        }
+
+        @keyframes legMove {
+            from { transform: rotate(15deg); }
+            to { transform: rotate(-15deg); }
+        }
+
+        @keyframes moveSynthGrid {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 50px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="noise-overlay"></div>
+    <div class="cursor-diamond" id="cursorDiamond"></div>
+
+    <!-- Background suspense audio -->
+    <audio id="gameMusic" loop>
+        <source src="https://upload.wikimedia.org/wikipedia/commons/2/22/Deep_Space_Hum.ogg" type="audio/ogg">
+    </audio>
+
+    <div class="container" id="mainContainer">
+        
+        <!-- Interactive Portals -->
+        <div class="hitbox hitbox-left" id="hitLeft" onclick="alert('Entering Mine Quest...')"></div>
+        <div class="hitbox hitbox-right" id="hitRight" onclick="alert('Booting Fuse Or Confuse...')"></div>
+
+        <div class="split-line"></div>
+
+        <!-- LEFT: MINECRAFT GAME STYLE -->
+        <div class="side mc-side">
+            <div class="mc-sky-box">
+                <div class="mc-cloud cloud-1"></div>
+                <div class="mc-cloud cloud-2"></div>
+                <div class="mc-cloud cloud-3"></div>
+            </div>
+
+            <!-- Enhanced Bushes -->
+            <div class="mc-bush" style="left: 15%;">
+                <div class="leaf-block leaf-1"></div>
+                <div class="leaf-block leaf-2"></div>
+                <div class="leaf-block leaf-3"></div>
+            </div>
+            
+            <div class="mc-bush" style="left: 45%; transform: scale(1.4);">
+                <div class="leaf-block leaf-1"></div>
+                <div class="leaf-block leaf-2"></div>
+                <div class="leaf-block leaf-3"></div>
+            </div>
+
+            <div class="sheep-container">
+                <div class="sheep">
+                    <div class="sheep-body"></div>
+                    <div class="sheep-head"></div>
+                    <div class="sheep-leg leg-1"></div>
+                    <div class="sheep-leg leg-2" style="left: 15px;"></div>
+                    <div class="sheep-leg leg-1" style="right: 15px;"></div>
+                    <div class="sheep-leg leg-2"></div>
+                </div>
+            </div>
+
+            <div class="mc-ground-container">
+                <div class="mc-grass-layer">
+                    <div class="mc-blades"></div>
+                    <div class="mc-grass-3d"></div>
+                </div>
+                <div class="mc-dirt-layer"></div>
+            </div>
+            
+            <div class="content">
+                <div class="mc-subtitle" style="font-family:'Silkscreen'; color:#fff; font-size:1vw; margin-bottom:10px;">MODE: SURVIVAL</div>
+                <h1 class="mc-title">MINE<br>QUEST</h1>
+            </div>
+        </div>
+
+        <!-- RIGHT: NEON ARCADE -->
+        <div class="side neon-side">
+            <div class="synth-grid"></div>
+            <canvas id="neonCanvas"></canvas>
+            <div class="content">
+                <div class="neon-subtitle" style="font-family:'Orbitron'; color:var(--neon-pink); font-size:1.2vw;">INSERT COIN TO START</div>
+                <h1 class="neon-title">FUSE OR<br>CONFUSE</h1>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const container = document.getElementById('mainContainer');
+        const root = document.documentElement;
+        const cursor = document.getElementById('cursorDiamond');
+        const gameMusic = document.getElementById('gameMusic');
+        
+        let musicStarted = false;
+
+        // Optimized Animation Variables
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let currentMouseX = window.innerWidth / 2;
+        let currentMouseY = window.innerHeight / 2;
+        let targetSplit = 50;
+        let currentSplit = 50;
+
+        // Capture mouse position without direct style updates
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            // Calculate target split position
+            const percent = (mouseX / window.innerWidth) * 100;
+            targetSplit = 100 - Math.max(30, Math.min(70, percent));
+
+            // Start music on first interaction
+            if (!musicStarted) {
+                gameMusic.play().catch(() => {});
+                musicStarted = true;
+            }
+        });
+
+        // High Performance Render Loop
+        function renderLoop() {
+            // Smoothly Lerp mouse coordinates
+            currentMouseX += (mouseX - currentMouseX) * 0.2;
+            currentMouseY += (mouseY - currentMouseY) * 0.2;
+
+            // Apply smooth cursor transform
+            cursor.style.transform = `translate3d(${currentMouseX - 16}px, ${currentMouseY - 16}px, 0) rotate(45deg)`;
+
+            // Smoothly Lerp split position
+            currentSplit += (targetSplit - currentSplit) * 0.08;
+            root.style.setProperty('--split-pos', `${currentSplit}%`);
+
+            // Cursor reaction based on position relative to the split
+            const splitThreshold = (window.innerWidth * currentSplit) / 100;
+            if (currentMouseX < splitThreshold) {
+                cursor.style.borderColor = '#51D954';
+                cursor.style.width = '40px';
+                cursor.style.height = '40px';
+            } else {
+                cursor.style.borderColor = '#00f0ff';
+                cursor.style.width = '32px';
+                cursor.style.height = '32px';
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        // Start Loop
+        requestAnimationFrame(renderLoop);
+
+        // Neon Laser Canvas Logic
+        const canvasN = document.getElementById('neonCanvas');
+        const ctxN = canvasN.getContext('2d');
+
+        function resize() {
+            canvasN.width = window.innerWidth;
+            canvasN.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Laser {
+            constructor() { this.reset(); this.y = Math.random() * canvasN.height; }
+            reset() {
+                this.x = (canvasN.width * 0.4) + Math.random() * (canvasN.width * 0.6);
+                this.y = -100;
+                this.len = Math.random() * 100 + 50;
+                this.speed = Math.random() * 10 + 10;
+                this.color = Math.random() > 0.5 ? '#ff007f' : '#00f0ff';
+            }
+            draw() {
+                ctxN.beginPath();
+                ctxN.moveTo(this.x, this.y);
+                ctxN.lineTo(this.x + 5, this.y - this.len);
+                ctxN.strokeStyle = this.color;
+                ctxN.lineWidth = 2;
+                ctxN.stroke();
+                this.y += this.speed;
+                if (this.y > canvasN.height + 100) this.reset();
+            }
+        }
+
+        const lasers = Array.from({ length: 25 }, () => new Laser());
+
+        function animateLasers() {
+            ctxN.clearRect(0, 0, canvasN.width, canvasN.height);
+            lasers.forEach(l => l.draw());
+            requestAnimationFrame(animateLasers);
+        }
+        animateLasers();
+    </script>
+</body>
+</html>
